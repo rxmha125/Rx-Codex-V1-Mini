@@ -1,12 +1,9 @@
-# requirements.txt (Slimmed for Vercel Serverless)
+# requirements.txt
 
 fastapi
 uvicorn[standard]
-transformers>=4.40.0 # Pinning transformers slightly just in case
-# Install CPU-only PyTorch (much smaller)
-torch --index-url https://download.pytorch.org/whl/cpu
+transformers>=4.0.0 # Specify a minimum version if needed
+torch>=1.8.0     # Or specific torch version for your system
 sentencepiece
-accelerate # Still potentially useful even on CPU for some things
-
-# Removed torchvision, torchaudio, pandas, datasketch as likely not needed for API runtime
-# python-dotenv # Keep if you plan to use .env files later
+accelerate
+python-dotenv # Optional, but good practice for handling environment variables later
