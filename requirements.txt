@@ -1,15 +1,14 @@
-# requirements.txt (Updated for Auth + DB)
+# requirements.txt (Ensure these are all present)
 
 fastapi
 uvicorn[standard]
 transformers>=4.40.0
-torch --index-url https://download.pytorch.org/whl/cpu # Keep CPU torch for deployment size
+torch --index-url https://download.pytorch.org/whl/cpu
 sentencepiece
 accelerate
-python-dotenv # For managing secrets like DB connection string, JWT secret
-
-# --- Added for Auth & DB ---
-pymongo>=4.0 # MongoDB driver (use pymongo[srv] if needed for DNS seedlist connection)
-passlib[bcrypt] # For password hashing
-python-jose[cryptography] # For JWT handling
-email-validator # Often needed by FastAPI for email validation in Pydantic
+python-dotenv
+pymongo>=4.0
+passlib[bcrypt]
+python-jose[cryptography]
+email-validator
+python-multipart # <<< ADD THIS LINE
