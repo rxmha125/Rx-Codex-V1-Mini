@@ -1,4 +1,4 @@
-# main.py (Corrected DB Check in Register)
+# main.py (Corrected for Render PORT and previous fixes)
 
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
@@ -17,12 +17,12 @@ from datetime import timedelta
 try:
     from api import db, models, auth_utils
 except ImportError:
-    print("Error importing local api modules. Make sure main.py is in the correct directory relative to the 'api' folder.")
+    print("Error importing local api modules. Ensure 'api' folder exists and contains db.py, models.py, auth_utils.py.")
     raise
 
 # --- Configuration ---
 HF_REPO_ID = "rxmha125/RxCodexV1-mini" # <<< YOUR HUGGING FACE REPO ID
-MODEL_LOAD_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+MODEL_LOAD_DEVICE = "cuda" if torch.cuda.is_available() else "cpu" # Detect device
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -79,13 +79,11 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 async def register_user(user: models.UserCreate):
     logger.info(f"Attempting registration for username: {user.username}")
     user_collection = db.get_user_collection()
-    # --- *** CORRECTED HERE *** ---
-    if user_collection is None:
-    # --- ********************** ---
+    if user_collection is None: # Correct check
          logger.error("Registration failed: Database collection not available.")
          raise HTTPException(status_code=503, detail="Database service not available")
 
-    existing_user = db.get_user(user.username)
+    existing_user = db.get_user(user.username) # Uses corrected check internally
     if existing_user:
         logger.warning(f"Registration failed: Username '{user.username}' already exists.")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered")
@@ -104,7 +102,7 @@ async def register_user(user: models.UserCreate):
 @app.post("/token", response_model=models.Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     logger.info(f"Login attempt for username: {form_data.username}")
-    user = db.get_user(form_data.username) # This uses the corrected db.py check internally
+    user = db.get_user(form_data.username)
     if not user or not auth_utils.verify_password(form_data.password, user.hashed_password):
         logger.warning(f"Login failed for username: {form_data.username} - Incorrect credentials.")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or password", headers={"WWW-Authenticate": "Bearer"})
@@ -120,7 +118,7 @@ async def root():
     return {"message": f"Rx Codex V1-mini API ({app_config.get('model_repo_id', 'N/A')}) is running!", "model_status": "Loaded" if model and tokenizer else "Not Loaded"}
 
 @app.post("/generate", response_model=GenerationResponse)
-async def generate_text_api(request: GenerationRequest):
+async def generate_text_api(request: GenerationRequest): # Will protect later
     global tokenizer, model
     if not tokenizer or not model: raise HTTPException(status_code=503, detail="Model is not ready.")
     logger.info(f"Received generation request for prompt: '{request.prompt}'")
@@ -139,11 +137,14 @@ async def generate_text_api(request: GenerationRequest):
                 pad_token_id=tokenizer.pad_token_id, eos_token_id=tokenizer.eos_token_id,
             )
         full_generated_text = tokenizer.decode(output_sequences[0], skip_special_tokens=True)
+        # --- Basic cleanup of response ---
         assistantContent = full_generated_text
         if assistantContent.lower().startswith(request.prompt.lower()):
              assistantContent = assistantContent[len(request.prompt):].strip()
+             # Use correct Python regex substitution
              assistantContent = re.sub(r"^\s*[:\-.,\s]\s*", "", assistantContent)
         assistantContent = assistantContent.strip() or "Model returned an empty response."
+        # --- End cleanup ---
     except Exception as e:
         logger.error(f"Error during text generation: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Internal server error during text generation.")
@@ -156,6 +157,13 @@ async def generate_text_api(request: GenerationRequest):
 # --- Uvicorn runner ---
 if __name__ == "__main__":
     import uvicorn
+    # Need to import Optional here if not done globally
+    from typing import Optional # Ensure Optional is imported if used here
     logger.info("Starting API via Uvicorn (direct script run)...")
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-
+    # Use PORT environment variable if set (Render provides this), otherwise default to 8000
+    port_to_use = int(os.getenv("PORT", 8000))
+    logger.info(f"Uvicorn will attempt to run on host 0.0.0.0:{port_to_use}")
+    # This block is mainly for local execution using `python main.py`
+    # Render uses the "Start Command" set in its dashboard.
+    # Use reload=True only for local dev, not for Render's start command.
+    uvicorn.run("main:app", host="0.0.0.0", port=port_to_use, reload=True)

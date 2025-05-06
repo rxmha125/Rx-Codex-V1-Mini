@@ -1,14 +1,24 @@
-# requirements.txt (Ensure these are all present)
+# requirements.txt (Slimmed for Vercel/Render Serverless)
 
 fastapi
 uvicorn[standard]
-transformers>=4.40.0
+transformers>=4.40.0 # Or latest stable
+# --- Install CPU-only PyTorch (much smaller) ---
 torch --index-url https://download.pytorch.org/whl/cpu
+# ---------------------------------------------
 sentencepiece
-accelerate
-python-dotenv
-pymongo>=4.0
+accelerate # Keep for potential utility even on CPU
+
+# --- Added for Auth & DB ---
+pymongo>=4.0 # Or pymongo[srv] if needed for Atlas DNS seedlist
 passlib[bcrypt]
 python-jose[cryptography]
 email-validator
-python-multipart # <<< ADD THIS LINE
+python-multipart # Required for form data (login)
+python-dotenv # Good practice for local .env file
+
+# --- Removed ---
+# torchvision # Likely not needed for API
+# torchaudio # Likely not needed for API
+# pandas # Was used for OASST1 processing, not needed for runtime
+# datasketch # Was used for C4 loading, not needed for runtime
