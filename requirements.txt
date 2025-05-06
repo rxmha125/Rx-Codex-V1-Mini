@@ -1,0 +1,9 @@
+# requirements.txt
+
+fastapi
+uvicorn[standard]
+transformers>=4.0.0 # Specify a minimum version if needed
+torch>=1.8.0     # Or specific torch version for your system
+sentencepiece
+accelerate
+python-dotenv # Optional, but good practice for handling environment variables later
